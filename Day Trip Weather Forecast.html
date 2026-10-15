@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Day Trip Weather Forecast</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Day Trip Weather Forecast">
+<style>
+:root{--ink:#1c2a38;--mute:#5d6e7c;--paper:#edf2f0;--card:#fbfdfc;--line:#cfdad6;--rain:#2f6a9f;--good:#2f7d57;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e6eef0;--mute:#9aaab6;--paper:#121b22;--card:#1a2630;--line:#2c3b47;--rain:#6fb0e6;--good:#5fc08c}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.4 -apple-system,system-ui,sans-serif}
+main{max-width:600px;margin:0 auto;padding:16px 16px 40px}
+h1{font:600 28px/1.1 ui-serif,"New York",Georgia,serif;margin:4px 0 2px}
+.sub{color:var(--mute);font-size:14px;margin:0 0 16px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+label,.lab{display:block;font-size:13px;color:var(--mute);margin-bottom:6px}
+input[type=range]{width:100%;accent-color:var(--rain)}
+input[type=search]{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:9px 10px;width:100%}
+.dual{position:relative;height:36px;margin:8px 0 2px}
+.dual .track,.dual .fill{position:absolute;top:50%;height:6px;margin-top:-3px;border-radius:3px}
+.dual .track{left:0;right:0;background:var(--line)}
+.dual .fill{background:var(--rain)}
+.dual input{position:absolute;left:0;top:0;width:100%;height:36px;margin:0;background:none;pointer-events:none;-webkit-appearance:none;appearance:none}
+.dual input::-webkit-slider-runnable-track{background:transparent;height:36px}
+.dual input::-moz-range-track{background:transparent}
+.dual input::-webkit-slider-thumb{pointer-events:auto;-webkit-appearance:none;width:26px;height:26px;margin-top:5px;border-radius:50%;background:var(--rain);border:3px solid var(--card);box-shadow:0 0 0 1px var(--rain)}
+.dual input::-moz-range-thumb{pointer-events:auto;width:20px;height:20px;border-radius:50%;background:var(--rain);border:3px solid var(--card);box-shadow:0 0 0 1px var(--rain)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-top:10px}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.strip button{border-radius:12px;min-width:48px;padding:6px 4px;text-align:center;line-height:1.2;flex:0 0 auto}
+.strip b{display:block;font-size:17px}
+button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--rain);outline-offset:2px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.big{font:600 22px ui-serif,Georgia,serif}
+.hits{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.hits button{text-align:left;border-radius:10px}
+.town{padding:12px 0;border-top:1px solid var(--line)}
+.town:first-child{border-top:0}
+.name{font-weight:600}
+.meta{font-size:13px;color:var(--mute)}
+.days{display:flex;gap:6px;overflow-x:auto;margin-top:8px}
+.d{flex:1 0 92px;background:var(--paper);border-radius:10px;padding:8px 6px;text-align:center}
+.d .ico{font-size:26px}
+.d .desc{font-size:13px;font-weight:600;line-height:1.2;min-height:32px;display:flex;align-items:center;justify-content:center}
+.d .snow{color:var(--rain);font-weight:600}
+.d .t{font:600 16px ui-serif,Georgia,serif}
+.d .t small{font:13px -apple-system,sans-serif;color:var(--mute)}
+.rain{color:var(--rain)}
+.pick{color:var(--good);font-size:12px;font-weight:600}
+.x{border:0;background:none;color:var(--mute);padding:0 4px;font-size:13px;text-decoration:underline}
+.msg{color:var(--mute);text-align:center;padding:18px 0}
+</style>
+</head>
+<body>
+<main>
+ <h1>Day Trip Weather Forecast</h1>
+ <p class="sub" id="fromLine"></p>
+
+ <section class="panel">
+  <label for="o">Starting from: <b id="oName"></b></label>
+  <input type="search" id="o" placeholder="Type a city to change your starting point" autocomplete="off">
+  <div class="hits" id="oHits"></div>
+  <div class="chips" style="margin-top:8px"><button id="loc">Use my location</button></div>
+ </section>
+
+ <section class="panel">
+  <span class="lab">Days (tap to select several)</span>
+  <div class="chips"><button id="wk0">This weekend</button><button id="wk1">Next weekend</button><button id="clr">Clear</button></div>
+  <div class="strip" id="strip"></div>
+  <div style="margin-top:14px">
+   <div class="row"><span class="lab" style="margin:0">Drive time</span><span class="big" id="hrsOut"></span></div>
+   <div class="dual"><div class="track"></div><div class="fill" id="fill"></div>
+    <input type="range" id="minHrs" min="0" max="210" step="15" value="0" aria-label="Shortest drive time">
+    <input type="range" id="hrs" min="0" max="210" step="15" value="90" aria-label="Longest drive time">
+   </div>
+   <div class="row meta"><span>0 min</span><span>3 h 30 min</span></div>
+  </div>
+  <div class="chips" id="sort" style="margin-top:10px" role="group" aria-label="Sort by">
+   <button data-s="drive" aria-pressed="true">Closest first</button>
+   <button data-s="weather" aria-pressed="false">Best weather first</button>
+  </div>
+ </section>
+
+ <section class="panel">
+  <label for="q">Add a city/town by name</label>
+  <input type="search" id="q" placeholder="Start typing, e.g. Tob… or Buffalo" autocomplete="off">
+  <div class="hits" id="hits"></div>
+  <div class="meta" id="mine" style="margin-top:8px"></div>
+ </section>
+
+ <section class="panel" id="results"><div class="msg">Select at least one day.</div></section>
+ <p class="sub">Forecast: Open-Meteo. Towns: OpenStreetMap. Drive times (~) are estimated from straight-line distance, not traffic-aware.</p>
+</main>
+
+<script>
+let lastFound=[]; // towns found around the current starting point (used for name hints)
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let sort="drive",seq=0,sel=new Set(),custom=store.get("dtw_custom",[]),origin=null;
+
+const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*6e4);return z.toISOString().slice(0,10)};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const today=new Date();today.setHours(12,0,0,0);
+const dayObj=s=>new Date(s+"T12:00:00");
+const dl=s=>dayObj(s).toLocaleDateString("en-CA",{weekday:"short",day:"numeric"});
+function icon(c){
+ if(c===0)return"☀️";if(c<=2)return"🌤️";if(c===3)return"☁️";if(c<=48)return"🌫️";
+ if(c<=57)return"🌦️";if(c<=67)return"🌧️";if(c<=77)return"🌨️";if(c<=82)return"🌧️";if(c<=86)return"🌨️";return"⛈️"}
+const DESC={0:"Clear",1:"Mostly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Freezing fog",51:"Light drizzle",53:"Drizzle",55:"Heavy drizzle",56:"Freezing drizzle",57:"Freezing drizzle",
+ 61:"Light rain",63:"Rain",65:"Heavy rain",66:"Freezing rain",67:"Freezing rain",71:"Light snow",73:"Snow",75:"Heavy snow",77:"Snow grains",
+ 80:"Light showers",81:"Rain showers",82:"Heavy showers",85:"Snow showers",86:"Heavy snow showers",95:"Thunderstorm",96:"Thunderstorm, hail",99:"Thunderstorm, hail"};
+const desc=c=>DESC[c]||"Mixed";
+const isSnow=c=>(c>=71&&c<=77)||c===85||c===86;
+function amount(w){
+ if(w.snow>=0.1)return `<span class="snow">${w.snow.toFixed(w.snow<10?1:0)} cm snow</span>`;
+ if(w.mm>=0.1)return `${w.mm.toFixed(w.mm<10?1:0)} mm`;
+ return "No precip.";
+}
+const score=w=>-(w.pop||0)-Math.abs(w.hi-22)*2-w.wind*0.4;
+const mins=m=>m>=60?Math.floor(m/60)+" h"+(m%60?" "+m%60+" min":""):m+" min";
+function estDrive(lat,lon){
+ const R=6371,r=x=>x*Math.PI/180,dLa=r(lat-origin.lat),dLo=r(lon-origin.lon);
+ const a=Math.sin(dLa/2)**2+Math.cos(r(origin.lat))*Math.cos(r(lat))*Math.sin(dLo/2)**2;
+ return Math.max(10,Math.round(2*R*Math.asin(Math.sqrt(a))*1.3/85*60/5)*5)}
+
+function setOrigin(o){origin=o;showOrigin();load()}
+function showOrigin(){$("oName").textContent=origin?origin.name:"not set";$("fromLine").textContent=origin?"From "+origin.name+", pick days, set a drive time, add any city/town.":"Choose a starting point, pick days, and set a drive time."}
+
+// Type-ahead: local matches from 1 letter, online matches from 3 letters (service limit)
+// Place search. Names and ZIP codes via Open-Meteo; Canadian postal codes via Zippopotam.us (first 3 characters), then a general address search as fallback.
+const CA_POST=/^([A-Za-z]\d[A-Za-z])\s?(\d[A-Za-z]\d)?$/;
+let lastNom=0;
+async function geo(name,cc){
+ const r=await fetch("https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&name="+encodeURIComponent(name)+(cc?"&countryCode="+cc:""));
+ return((await r.json()).results||[]).map(p=>{const n=p.name+(p.admin1?", "+p.admin1:"");
+  return{name:n,lat:p.latitude,lon:p.longitude,label:n+(p.country?", "+p.country:"")}});
+}
+async function lookup(q){
+ const m=q.match(CA_POST);
+ if(m){ // Canadian postal area (first 3 characters) via Zippopotam.us
+  try{
+   const r=await fetch("https://api.zippopotam.us/ca/"+m[1].toUpperCase());
+   if(r.ok){const j=await r.json();
+    const z=(j.places||[]).map(p=>{const base=p["place name"].split(" (")[0];
+     return{name:base+", "+p.state,lat:+p.latitude,lon:+p.longitude,label:j["post code"]+" · "+base+", "+p.state+", Canada"}});
+    if(z.length)return z}
+  }catch(e){}
+ }
+ let res=await geo(m?m[1]:q,m?"CA":"");
+ const full=m?!!m[2]:(/\d/.test(q)&&q.length>=6);
+ if(!res.length&&full&&Date.now()-lastNom>1100){
+  lastNom=Date.now();
+  const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=5&q="+encodeURIComponent(m?q.toUpperCase()+", Canada":q));
+  res=(await r.json()).map(p=>{const parts=p.display_name.split(", ");
+   return{name:parts.slice(0,2).join(", "),lat:+p.lat,lon:+p.lon,label:parts.slice(0,4).join(", ")}});
+ }
+ return res;
+}
+
+function typeahead(inp,hitsEl,localFn,onPick){
+ let n=0,timer;
+ const draw=(items,note)=>{
+  hitsEl.innerHTML=items.map((p,i)=>`<button data-i="${i}">${esc(p.label)}</button>`).join("")+(note?`<div class="meta">${note}</div>`:"");
+  hitsEl.onclick=e=>{const b=e.target.closest("button");if(!b)return;onPick(items[+b.dataset.i]);inp.value="";hitsEl.innerHTML=""}};
+ inp.addEventListener("input",()=>{
+  clearTimeout(timer);const q=inp.value.trim(),my=++n;
+  if(!q){hitsEl.innerHTML="";return}
+  const loc=localFn(q);
+  draw(loc,q.length<3?"Type 3+ letters to search more places.":"Searching…");
+  if(q.length<3)return;
+  timer=setTimeout(async()=>{
+   try{
+    const res=await lookup(q);
+    if(my!==n)return;
+    const seen=new Set(loc.map(x=>x.name));
+    const all=loc.concat(res.filter(x=>!seen.has(x.name)));
+    draw(all,all.length?"":"No match. Try another spelling.");
+   }catch(e){if(my===n)draw(loc,"Couldn’t search online. Check your connection.")}
+  },250)});
+}
+const localTowns=q=>{const s=q.toLowerCase();
+ return lastFound.filter(t=>t.name.toLowerCase().split(/[\s(–-]+/).some(w=>w.startsWith(s))||t.name.toLowerCase().startsWith(s)).slice(0,5)
+  .map(t=>({name:t.name,lat:t.lat,lon:t.lon,label:t.name}))};
+
+typeahead($("q"),$("hits"),localTowns,p=>{
+ if(!custom.some(c=>c.name===p.name))custom.push({name:p.name,lat:p.lat,lon:p.lon});
+ store.set("dtw_custom",custom);renderMine();load()});
+typeahead($("o"),$("oHits"),()=>[],p=>setOrigin({name:p.name,lat:p.lat,lon:p.lon,home:false}));
+
+$("loc").onclick=()=>{
+ if(!navigator.geolocation){alert("Location isn’t available in this browser.");return}
+ navigator.geolocation.getCurrentPosition(
+  p=>setOrigin({name:"My location",lat:p.coords.latitude,lon:p.coords.longitude,home:false}),
+  ()=>alert("Couldn’t get your location. Allow location access for this app, or type a city instead."),
+  {timeout:10000});
+};
+
+function buildStrip(){
+ $("strip").innerHTML=Array.from({length:16},(_,i)=>{const s=iso(addDays(today,i));
+  const d=dayObj(s);return `<button data-d="${s}" aria-pressed="${sel.has(s)}">${d.toLocaleDateString("en-CA",{weekday:"short"})}<b>${d.getDate()}</b></button>`}).join("")}
+function weekend(offset){
+ const sat=addDays(today,((6-today.getDay()+7)%7)+7*offset),sun=addDays(sat,1),last=iso(addDays(today,15));
+ sel=new Set([iso(sat),iso(sun)].filter(s=>s<=last));buildStrip();load()}
+function renderMine(){
+ $("mine").innerHTML=custom.length?"Your towns: "+custom.map((t,i)=>`${esc(t.name)} <button class="x" data-i="${i}">remove</button>`).join(" · "):""}
+
+// Finds towns/cities around the starting point within the drive-time radius (OpenStreetMap via Overpass). Returns null on failure.
+const nearCache={};
+const close=(a,b)=>Math.abs(a.lat-b.lat)<0.08&&Math.abs(a.lon-b.lon)<0.08;
+async function findNearby(max){
+ const key=origin.lat.toFixed(2)+","+origin.lon.toFixed(2)+","+max;
+ if(nearCache[key])return nearCache[key];
+ const q='[out:json][timeout:25];node(around:'+Math.round(max*1090)+','+origin.lat+','+origin.lon+')[place~"^(city|town)$"][name];out 1000;';
+ try{
+  const r=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"data="+encodeURIComponent(q)});
+  if(!r.ok)throw new Error(r.status);
+  const j=await r.json();
+  const w=e=>(+e.tags.population||0)+(e.tags.place==="city"?1e5:0);
+  return nearCache[key]=j.elements.sort((a,b)=>w(b)-w(a)).slice(0,300).map(e=>({name:e.tags.name,lat:e.lat,lon:e.lon}));
+
+ }catch(e){return null}
+}
+
+function track(){
+ const a=+$("minHrs").value/210,b=+$("hrs").value/210,f=$("fill");
+ f.style.left="calc(13px + (100% - 26px) * "+a+")";f.style.width="calc((100% - 26px) * "+(b-a)+")";
+ $("minHrs").style.zIndex=a>0.5?3:1;$("hrs").style.zIndex=2}
+
+async function load(){
+ const my=++seq,min=+$("minHrs").value,max=+$("hrs").value,days=[...sel].sort();
+ const range=min?mins(min)+" to "+mins(max):"Up to "+mins(max);
+ $("hrsOut").textContent=range;track();
+ const box=$("results");
+ if(!origin){box.innerHTML='<div class="msg">Choose a starting point first: tap Use my location, or type a city above.</div>';return}
+ if(!days.length){box.innerHTML='<div class="msg">Select at least one day.</div>';return}
+ box.innerHTML='<div class="msg">Finding towns near '+esc(origin.name)+'…</div>';
+ const found=await findNearby(max);
+ if(my!==seq)return;
+ if(found===null&&!custom.length){box.innerHTML='<div class="msg">Couldn’t look up nearby towns right now (the lookup service may be busy). Wait a moment and move the drive-time slider to retry, or add towns by name below.</div>';return}
+ lastFound=found||[];
+ const have=new Set(custom.map(t=>t.name.toLowerCase()));
+ const extra=lastFound.map(t=>({...t,d:{m:estDrive(t.lat,t.lon),est:true}}))
+  .filter(t=>t.d.m>=min&&t.d.m<=max&&!have.has(t.name.toLowerCase())&&!close(t,origin)).slice(0,40);
+ const list=extra.concat(custom.map(t=>({...t,d:{m:estDrive(t.lat,t.lon),est:true},custom:true})));
+ if(!list.length){box.innerHTML=`<div class="msg">No towns found ${min?"between "+mins(min)+" and "+mins(max):"within "+mins(max)} of ${esc(origin.name)}. Widen the drive-time range, or add a city/town by name below.</div>`;return}
+ box.innerHTML='<div class="msg">Loading forecast…</div>';
+ const u="https://api.open-meteo.com/v1/forecast?latitude="+list.map(t=>t.lat).join(",")+"&longitude="+list.map(t=>t.lon).join(",")
+  +"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,precipitation_sum,snowfall_sum"
+  +"&timezone=auto&start_date="+days[0]+"&end_date="+days[days.length-1];
+ try{
+  const r=await fetch(u);if(!r.ok)throw new Error(r.status);
+  let j=await r.json();if(!Array.isArray(j))j=[j];
+  if(my!==seq)return;
+  const rows=list.map((t,i)=>{const d=j[i].daily;
+   const per=days.map(s=>{const k=d.time.indexOf(s);return{s,code:d.weather_code[k],hi:Math.round(d.temperature_2m_max[k]),lo:Math.round(d.temperature_2m_min[k]),pop:d.precipitation_probability_max[k]??0,wind:Math.round(d.wind_speed_10m_max[k]),mm:d.precipitation_sum[k]||0,snow:d.snowfall_sum[k]||0}});
+   return{...t,per,avg:per.reduce((a,w)=>a+score(w),0)/per.length}});
+  const best=rows.reduce((a,b)=>b.avg>a.avg?b:a);
+  rows.sort(sort==="drive"?(a,b)=>a.d.m-b.d.m:(a,b)=>b.avg-a.avg);
+  box.innerHTML=rows.map(t=>`<div class="town"><div class="row"><span class="name">${esc(t.name)}${t===best?' <span class="pick">Best pick</span>':""}</span>
+   <span class="meta">${t.d.est?"~":""}${mins(t.d.m)}</span></div>
+   <div class="days">${t.per.map(w=>`<div class="d"><div class="meta">${dl(w.s)}</div><div class="ico" aria-hidden="true">${icon(w.code)}</div>
+    <div class="desc">${desc(w.code)}</div><div class="t">${w.hi}°<small> / ${w.lo}°</small></div>
+    <div class="meta"><span class="rain">${w.pop}% chance</span></div><div class="meta">${amount(w)}</div><div class="meta">Wind ${w.wind} km/h</div></div>`).join("")}</div></div>`).join("");
+ }catch(e){
+  if(my===seq)box.innerHTML='<div class="msg">Couldn’t reach the forecast service. Open this app from its https link, and check your connection.</div>';
+ }
+}
+
+$("strip").onclick=e=>{const b=e.target.closest("button");if(!b)return;
+ sel.has(b.dataset.d)?sel.delete(b.dataset.d):sel.add(b.dataset.d);b.setAttribute("aria-pressed",sel.has(b.dataset.d));load()};
+$("wk0").onclick=()=>weekend(0);$("wk1").onclick=()=>weekend(1);
+$("clr").onclick=()=>{sel.clear();buildStrip();load()};
+$("minHrs").oninput=()=>{if(+$("minHrs").value>+$("hrs").value)$("minHrs").value=$("hrs").value;load()};
+$("hrs").oninput=()=>{const lo=Math.max(15,+$("minHrs").value);if(+$("hrs").value<lo)$("hrs").value=lo;load()};
+$("sort").onclick=e=>{const b=e.target.closest("button");if(!b)return;sort=b.dataset.s;
+ document.querySelectorAll("#sort button").forEach(x=>x.setAttribute("aria-pressed",x===b));load()};
+$("mine").onclick=e=>{const b=e.target.closest("button");if(!b)return;custom.splice(+b.dataset.i,1);store.set("dtw_custom",custom);renderMine();load()};
+buildStrip();renderMine();showOrigin();weekend(0);
+</script>
+</body>
+</html>
